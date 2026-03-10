@@ -4,44 +4,30 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #0a0a0a;
+  --background: #000000;
   --foreground: #ffffff;
-  --card: #111111;
+  --card: #0a0a0a;
   --card-foreground: #ffffff;
-  --popover: #111111;
+  --popover: #0a0a0a;
   --popover-foreground: #ffffff;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --secondary: #1a1a1a;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #171717;
   --secondary-foreground: #ffffff;
-  --muted: #1a1a1a;
-  --muted-foreground: #a1a1aa;
-  --accent: #3b82f6;
+  --muted: #171717;
+  --muted-foreground: #a3a3a3;
+  --accent: #171717;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #262626;
-  --input: #1a1a1a;
-  --ring: #3b82f6;
-  --chart-1: #3b82f6;
-  --chart-2: #22c55e;
-  --chart-3: #f97316;
-  --chart-4: #8b5cf6;
-  --chart-5: #ec4899;
-  --radius: 0.75rem;
-  --sidebar: #111111;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #3b82f6;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #262626;
-  --sidebar-ring: #3b82f6;
+  --input: #262626;
+  --ring: #d4d4d4;
+  --radius: 1rem;
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Inter', 'Geist', 'Geist Fallback', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -61,30 +47,45 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-white/20 overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-black/40 backdrop-blur-xl border border-white/10;
+  }
+
+  .glass-card {
+    @apply bg-gradient-to-b from-white/[0.04] to-transparent backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_#00000080];
+  }
+
+  .text-glow {
+    text-shadow: 0 0 40px rgba(255, 255, 255, 0.4);
+  }
+
+  .bg-grid {
+    background-size: 60px 60px;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  }
+
+  .radial-glow {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
   }
 }
