@@ -1,23 +1,45 @@
-import { generateText, Output } from "ai"
+import { generateText } from "ai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { NextRequest, NextResponse } from "next/server"
-import { z } from "zod"
 
-const EmailSchema = z.object({
-  formal: z.object({
-    subject: z.string(),
-    body: z.string(),
-  }),
-  casual: z.object({
-    subject: z.string(),
-    body: z.string(),
-  }),
-  bold: z.object({
-    subject: z.string(),
-    body: z.string(),
-  }),
-  tips: z.array(z.string()),
-})
+// Simple delay helper
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// Parse JSON from text, even if wrapped in markdown code blocks
+function extractJSON(text: string) {
+  // Try direct parse first
+  try {
+    return JSON.parse(text)
+  } catch {
+    // noop
+  }
+
+  // Try to extract from markdown code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim())
+    } catch {
+      // noop
+    }
+  }
+
+  // Try to find JSON object in text
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0])
+    } catch {
+      // noop
+    }
+  }
+
+  return null
+}
+
+const MAX_RETRIES = 3
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,39 +52,113 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create Google Generative AI provider with user's API key
-    const google = createGoogleGenerativeAI({
-      apiKey: apiKey,
-    })
+    let model;
 
-    const result = await generateText({
-      model: google("gemini-2.0-flash"),
-      prompt,
-      output: Output.object({ schema: EmailSchema }),
-    })
+    // Check if the API key is an OpenRouter key (starts with sk-or-)
+    if (apiKey.startsWith("sk-or-")) {
+      const { createOpenRouter } = await import("@openrouter/ai-sdk-provider")
+      const openrouter = createOpenRouter({ apiKey })
+      // Use a reliable free model on OpenRouter
+      model = openrouter("google/gemma-3-27b-it:free")
+    } else {
+      // Google Gemini direct
+      const google = createGoogleGenerativeAI({ apiKey })
+      model = google("gemini-2.0-flash")
+    }
 
-    if (!result.object) {
+    // Retry loop for rate limits
+    let lastError: unknown = null
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const result = await generateText({
+          model,
+          prompt: prompt + `\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Just the raw JSON object with keys: formal, casual, tips.`,
+        })
+
+        const text = result.text
+        const parsed = extractJSON(text)
+
+        if (
+          parsed &&
+          parsed.formal &&
+          parsed.casual &&
+          parsed.formal.subject &&
+          parsed.formal.body &&
+          parsed.casual.subject &&
+          parsed.casual.body
+        ) {
+          // Ensure tips is an array
+          if (!Array.isArray(parsed.tips)) {
+            parsed.tips = ["Keep the email short and concise", "Follow up within 3-5 days"]
+          }
+          return NextResponse.json(parsed)
+        }
+
+        // If we got text but couldn't parse it properly, fail with context
+        lastError = new Error("AI response was not valid JSON. Raw: " + text.substring(0, 200))
+      } catch (err) {
+        lastError = err
+        const errMsg = err instanceof Error ? err.message : ""
+        const statusCode = (err as { statusCode?: number })?.statusCode
+
+        // If rate limited or quota exceeded, wait and retry
+        if (
+          statusCode === 429 ||
+          errMsg.includes("RESOURCE_EXHAUSTED") ||
+          errMsg.includes("quota") ||
+          errMsg.includes("rate")
+        ) {
+          const waitTime = attempt * 5000 // 5s, 10s, 15s
+          console.log(`Rate limited. Retrying in ${waitTime / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`)
+          await delay(waitTime)
+          continue
+        }
+
+        // Non-retryable errors, break immediately
+        break
+      }
+    }
+
+    // If we got here, all retries failed
+    console.error("API route error after retries:", lastError)
+
+    const errorMessage = lastError instanceof Error ? lastError.message : "Unknown error"
+    const statusCode = (lastError as { statusCode?: number })?.statusCode ?? 500
+
+    if (
+      errorMessage.includes("Key limit exceeded") ||
+      errorMessage.includes("RESOURCE_EXHAUSTED") ||
+      errorMessage.includes("quota") ||
+      statusCode === 429
+    ) {
       return NextResponse.json(
-        { error: "No content generated" },
-        { status: 500 }
+        { error: "API quota exceeded. Please wait a minute and try again, or use a different API key." },
+        { status: 429 }
       )
     }
 
-    return NextResponse.json(result.object)
-  } catch (error) {
-    console.error("API route error:", error)
-    
-    // Check for API key errors
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    if (errorMessage.includes("API key") || errorMessage.includes("401") || errorMessage.includes("403")) {
+    if (statusCode === 401 || statusCode === 403 || errorMessage.includes("API key")) {
       return NextResponse.json(
-        { error: "Invalid API key. Please check your Gemini API key and try again." },
+        { error: "Invalid or unauthorized API key. Please check your key." },
         { status: 401 }
       )
     }
-    
+
+    if (errorMessage.includes("No endpoints found") || errorMessage.includes("not found")) {
+      return NextResponse.json(
+        { error: "Model not available. Please try a different API key or try again later." },
+        { status: 404 }
+      )
+    }
+
     return NextResponse.json(
-      { error: "Failed to generate emails. Please try again." },
+      { error: `Generation failed: ${errorMessage.substring(0, 200)}` },
+      { status: 500 }
+    )
+  } catch (error) {
+    console.error("API route unexpected error:", error)
+    return NextResponse.json(
+      { error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     )
   }

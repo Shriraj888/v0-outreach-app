@@ -46,23 +46,34 @@ export function ApiKeyInput({ value, onChange }: ApiKeyInputProps) {
         <div>
           <h3 className="font-semibold text-foreground">API Key Required</h3>
           <p className="text-sm text-muted-foreground">
-            Enter your Gemini API key to generate emails
+            Enter your Gemini or OpenRouter API key to generate emails
           </p>
         </div>
       </div>
 
       <Field>
         <FieldLabel className="flex items-center justify-between">
-          <span>Gemini API Key</span>
-          <a
-            href="https://aistudio.google.com/apikey"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Get a free key
-            <ExternalLink className="w-3 h-3" />
-          </a>
+          <span>Gemini or OpenRouter API Key</span>
+          <div className="flex gap-3">
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              Get Gemini key
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <a
+              href="https://openrouter.ai/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+            >
+              Get OpenRouter key
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </FieldLabel>
         <div className="relative">
           <Input

@@ -17,7 +17,6 @@ interface EmailVariant {
 interface EmailResults {
   formal: EmailVariant
   casual: EmailVariant
-  bold: EmailVariant
   tips: string[]
 }
 
@@ -33,7 +32,7 @@ export default function ResultsPage() {
     setIsLoading(true)
     setError(null)
 
-    const prompt = `You are an expert cold email copywriter. Generate 3 cold email variants based on this info:
+    const prompt = `You are an expert cold email copywriter. Generate 2 cold email variants based on this info:
 - Recipient: ${data.recipient}
 - Purpose: ${data.purpose}
 - Sender background: ${data.background}
@@ -44,7 +43,6 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
 {
   "formal": { "subject": "...", "body": "..." },
   "casual": { "subject": "...", "body": "..." },
-  "bold": { "subject": "...", "body": "..." },
   "tips": ["tip1", "tip2", "tip3"]
 }`
 
@@ -55,12 +53,14 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
         body: JSON.stringify({ prompt, apiKey: key }),
       })
 
+      const responseData = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to generate emails")
+        // Use the actual error message from the API response
+        throw new Error(responseData.error || "Failed to generate emails")
       }
 
-      const data = await response.json()
-      setResults(data)
+      setResults(responseData)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {
@@ -71,7 +71,7 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
   useEffect(() => {
     const storedData = sessionStorage.getItem("craftFormData")
     const storedApiKey = sessionStorage.getItem("craft_api_key")
-    
+
     if (!storedData || !storedApiKey) {
       router.push("/craft")
       return
@@ -83,7 +83,7 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
     generateEmails(data, storedApiKey)
   }, [router])
 
-  const handleRegenerate = (style: "formal" | "casual" | "bold") => {
+  const handleRegenerate = (style: "formal" | "casual") => {
     if (formData && apiKey) {
       generateEmails(formData, apiKey)
     }
@@ -135,7 +135,7 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
           </div>
         ) : results ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 max-w-4xl mx-auto">
               <EmailCard
                 style="formal"
                 label="Formal"
@@ -151,14 +151,6 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
                 subject={results.casual.subject}
                 body={results.casual.body}
                 onRegenerate={() => handleRegenerate("casual")}
-              />
-              <EmailCard
-                style="bold"
-                label="Bold"
-                color="orange"
-                subject={results.bold.subject}
-                body={results.bold.body}
-                onRegenerate={() => handleRegenerate("bold")}
               />
             </div>
 
