@@ -7,7 +7,7 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: 'ColdMailCrafter - Cold Emails That Actually Get Replies',
+  title: 'Outreach - Cold Emails That Actually Get Replies',
   description: 'Your unfair advantage in the inbox. Generate 3 unique cold email styles with AI.',
   generator: 'v0.app',
 }

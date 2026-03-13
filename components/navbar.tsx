@@ -54,8 +54,8 @@ export function Navbar() {
             <Mail className="w-4 h-4 text-gray-900 relative z-10" />
             <div className="absolute inset-0 rounded-full bg-white blur-md opacity-0 group-hover:opacity-20 transition-opacity duration-500" />
           </div>
-          <span className="font-semibold text-sm tracking-wide text-white group-hover:text-gray-300 transition-colors">
-            ColdMailCrafter
+          <span className="font-semibold text-sm tracking-wide text-white group-hover:text-gray-300 transition-colors uppercase">
+            Outreach
           </span>
         </Link>
 

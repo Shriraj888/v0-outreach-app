@@ -424,7 +424,7 @@ export function HeroSection() {
               <div className="flex items-center justify-between gap-4 pb-2">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-violet-400/80">Sequence preview</p>
-                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-white sm:text-2xl">First draft, already refined.</h2>
+                  <h2 className="mt-1.5 text-xl font-semibold tracking-tight text-white sm:text-2xl">Outreach, optimized.</h2>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-400">
                   <span className="relative flex h-2 w-2">

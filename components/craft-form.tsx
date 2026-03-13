@@ -280,7 +280,7 @@ export function CraftForm() {
                 )}
               </div>
               <input
-                placeholder="e.g. Shriraj"
+                placeholder="e.g. Alex"
                 value={formData.senderName}
                 onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
                 onBlur={() => handleBlur("senderName")}

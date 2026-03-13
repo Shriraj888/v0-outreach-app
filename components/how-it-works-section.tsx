@@ -138,7 +138,7 @@ export function HowItWorksSection() {
             <span className="text-sm font-medium text-gray-400">How It Works</span>
           </div>
           <h2 className="hiw-title text-5xl sm:text-6xl lg:text-7xl font-semibold text-white mb-6 tracking-tight">
-            Three Steps. <span className="text-gray-600">Zero Friction.</span>
+            Three Steps. <span className="bg-gradient-to-r from-gray-300 to-gray-600 bg-clip-text text-transparent">Zero Friction.</span>
           </h2>
           <p className="hiw-subtitle text-lg sm:text-xl text-gray-500 max-w-xl mx-auto font-light">
             From blank page to inbox-ready email in under 30 seconds.

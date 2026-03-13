@@ -123,8 +123,8 @@ export function FeaturesSection() {
           </div>
           
           <h2 className="feature-title text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-semibold tracking-[-0.03em] text-white leading-[1.05] flex flex-col items-center justify-center">
-            <span className="block transform-gpu origin-bottom opacity-0 mb-1 lg:mb-2">Beyond templates.</span>
-            <span className="block text-gray-600 transform-gpu origin-bottom opacity-0">Engineered for responses.</span>
+            <span className="block transform-gpu origin-bottom opacity-0 mb-1 lg:mb-2">Precision tooling.</span>
+            <span className="block bg-gradient-to-r from-gray-300 to-gray-600 bg-clip-text text-transparent transform-gpu origin-bottom opacity-0 pb-2">For the inbox.</span>
           </h2>
         </div>
 
