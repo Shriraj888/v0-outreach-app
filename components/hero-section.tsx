@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   CheckCircle2,
   Mail,
+  Loader2,
 } from "lucide-react"
 import type { IconType } from "react-icons"
 import {
@@ -12,7 +14,7 @@ import {
   SiZoho,
 } from "react-icons/si"
 import { FaMicrosoft, FaYahoo } from "react-icons/fa6"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -71,8 +73,27 @@ if (typeof window !== "undefined") {
 }
 
 export function HeroSection() {
+  const router = useRouter()
   const container = useRef<HTMLDivElement>(null)
   const spotlight = useRef<HTMLDivElement>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
+
+  const handleCraftNavigation = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    e.preventDefault();
+    setIsNavigating(true);
+    
+    // Zoom out the whole container perfectly to create a "warping" feel, then navigate
+    gsap.to(container.current, {
+      scale: 0.98,
+      opacity: 0,
+      duration: 0.5,
+      ease: "power3.inOut",
+      onComplete: () => {
+        router.push('/craft');
+        setTimeout(() => setIsNavigating(false), 500); 
+      }
+    });
+  };
 
   useGSAP(() => {
     const root = container.current
@@ -355,14 +376,27 @@ export function HeroSection() {
             <div className="hero-actions mt-7 opacity-0">
               <Link
                 href="/craft"
-                className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_rgba(255,255,255,0.4)] sm:px-8 sm:text-base"
+                onClick={handleCraftNavigation}
+                className={`group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 transition-all duration-300 sm:px-8 sm:text-base ${
+                  isNavigating ? "scale-95 shadow-none opacity-80" : "hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_rgba(255,255,255,0.4)]"
+                }`}
               >
                 <span
                   className="pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                   style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0))" }}
                 />
-                <span className="relative">Craft your first draft</span>
-                <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                
+                {isNavigating ? (
+                  <>
+                    <Loader2 className="relative h-5 w-5 animate-spin" />
+                    <span className="relative">Activating Engine...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="relative">Craft your first draft</span>
+                    <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </>
+                )}
               </Link>
             </div>
 

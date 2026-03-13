@@ -107,7 +107,7 @@ export function FeaturesSection() {
   }, { scope: container });
 
   return (
-    <section ref={container} className="relative py-32 sm:py-40 overflow-hidden perspective-1000">
+    <section id="features" ref={container} className="relative py-32 sm:py-40 overflow-hidden perspective-1000">
       
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-grid opacity-[0.03]" />

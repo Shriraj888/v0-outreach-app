@@ -1,12 +1,53 @@
 "use client"
 
 import Link from "next/link"
-import { Github, Linkedin } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Github, Linkedin, Loader2 } from "lucide-react"
+import { useState } from "react"
+import gsap from "gsap"
 
 export function Footer() {
+  const router = useRouter()
+  const [isNavigating, setIsNavigating] = useState(false)
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
+
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, targetId: string) => {
+    if (window.location.pathname !== '/') return; // Let default navigation happen if not on home page
+    e.preventDefault();
+    const targetElement = document.querySelector(targetId);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleScrollToHome = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    if (window.location.pathname === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleCraftNavigation = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    e.preventDefault();
+    setIsNavigating(true);
+    // Smooth scroll the footer up slightly as it exits
+    gsap.to('footer', {
+      opacity: 0,
+      y: 10,
+      duration: 0.4,
+      ease: "power2.inOut",
+      onComplete: () => {
+        router.push('/craft');
+        setTimeout(() => {
+          setIsNavigating(false);
+          gsap.set('footer', { clearProps: 'all' });
+        }, 500);
+      }
+    });
+  };
 
   return (
     <footer className="relative bg-black text-white pt-32 pb-10 px-6 sm:px-10 lg:px-16 w-full font-sans border-t border-white/[0.06]">
@@ -22,12 +63,35 @@ export function Footer() {
           
           <div className="flex flex-col sm:flex-row gap-16 sm:gap-[6.5rem] lg:pb-[1.125rem]">
             <div>
-              <h3 className="text-[11px] font-bold tracking-[0.2em] text-gray-500 mb-6 uppercase">Navigate</h3>
-              <ul className="space-y-4 text-[15px] font-semibold text-gray-300">
-                <li><Link href="/" className="hover:text-white transition-colors block">Home</Link></li>
-                <li><Link href="/craft" className="hover:text-white transition-colors block">Generator</Link></li>
-                <li><Link href="#features" className="hover:text-white transition-colors block">Features</Link></li>
-                <li><Link href="#how-it-works" className="hover:text-white transition-colors block">How it Works</Link></li>
+              <h3 className="text-[12px] font-bold tracking-[0.2em] text-gray-500 mb-6 uppercase">Navigate</h3>
+              <ul className="space-y-5 text-lg sm:text-xl font-bold text-white/90">
+                <li>
+                  <Link href="/" onClick={handleScrollToHome} className="hover:text-white hover:translate-x-1 transition-all duration-300 block">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/craft" onClick={handleCraftNavigation} className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2">
+                    {isNavigating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span className="text-white">Connecting...</span>
+                      </>
+                    ) : (
+                      "Generator"
+                    )}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#features" onClick={(e) => handleScroll(e, '#features')} className="hover:text-white hover:translate-x-1 transition-all duration-300 block">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/#how-it-works" onClick={(e) => handleScroll(e, '#how-it-works')} className="hover:text-white hover:translate-x-1 transition-all duration-300 block leading-[1.15]">
+                    How it<br />Works
+                  </Link>
+                </li>
               </ul>
             </div>
             

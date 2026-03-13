@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Mail, Sparkles } from "lucide-react"
-import { useRef } from "react"
+import { useRouter } from "next/navigation"
+import { Mail, Sparkles, Loader2 } from "lucide-react"
+import { useRef, useState } from "react"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -12,8 +13,29 @@ if (typeof window !== "undefined") {
 }
 
 export function Navbar() {
+  const router = useRouter();
   const navContainer = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleCraftNavigation = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+    e.preventDefault();
+    setIsNavigating(true);
+    
+    // Play a quick satisfying outgoing animation on the entire navbar, then navigate
+    gsap.to(pillRef.current, {
+      scale: 0.95,
+      y: -5,
+      opacity: 0.6,
+      duration: 0.4,
+      ease: "power3.inOut",
+      onComplete: () => {
+        router.push('/craft');
+        // Reset state slightly after routing so it looks normal if user comes back
+        setTimeout(() => setIsNavigating(false), 500);
+      }
+    });
+  };
 
   useGSAP(() => {
     // Initial drop-in animation
@@ -41,6 +63,15 @@ export function Navbar() {
 
   }, { scope: navContainer });
 
+  const handleScroll = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, targetId: string) => {
+    if (window.location.pathname !== '/') return; // Let default navigation happen if not on home page
+    e.preventDefault();
+    const targetElement = document.querySelector(targetId);
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <nav ref={navContainer} className="fixed top-6 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none perspective-1000">
       <div
@@ -62,7 +93,8 @@ export function Navbar() {
         {/* Navigation Links & CTA */}
         <div className="flex items-center gap-6">
           <Link
-            href="#how-it-works"
+            href="/#how-it-works"
+            onClick={(e) => handleScroll(e, '#how-it-works')}
             className="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-300 relative group"
           >
             How it works
@@ -71,17 +103,27 @@ export function Navbar() {
 
           <Link
             href="/craft"
-            className="relative group overflow-hidden text-sm font-semibold px-5 py-2.5 rounded-full bg-white text-gray-900 transition-all duration-500"
+            onClick={handleCraftNavigation}
+            className="relative group overflow-hidden text-sm font-semibold px-5 py-2.5 rounded-full bg-white text-gray-900 transition-all duration-500 hover:scale-105 active:scale-95"
           >
             {/* Pulsing glow behind the button */}
             <div className="absolute inset-0 bg-white/30 blur-xl group-hover:bg-white/50 transition-colors duration-500" />
 
             {/* Animated sweeping gradient highlight */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+            <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent ${isNavigating ? '' : '-translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none'}`} />
 
             <span className="relative z-10 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-900 transition-colors" />
-              Craft Now
+              {isNavigating ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-gray-900 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-900 transition-colors" />
+                  Craft Now
+                </>
+              )}
             </span>
           </Link>
         </div>
