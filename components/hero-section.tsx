@@ -6,6 +6,12 @@ import {
   CheckCircle2,
   Mail,
 } from "lucide-react"
+import type { IconType } from "react-icons"
+import {
+  SiGmail,
+  SiZoho,
+} from "react-icons/si"
+import { FaMicrosoft, FaYahoo } from "react-icons/fa6"
 import { useRef } from "react"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
@@ -46,6 +52,19 @@ const toneItems = [
     background: "linear-gradient(135deg, rgba(251,113,133,0.22), rgba(251,146,60,0.04))",
   },
 ]
+
+const mailProviders: Array<{
+  name: string
+  icon: IconType
+  color: string
+}> = [
+  { name: "Gmail", icon: SiGmail, color: "#EA4335" },
+  { name: "Yahoo", icon: FaYahoo, color: "#7B0099" },
+  { name: "Microsoft", icon: FaMicrosoft, color: "#00A4EF" },
+  { name: "Zoho", icon: SiZoho, color: "#F59E0B" },
+]
+
+const mailMarqueeItems = Array(20).fill(mailProviders).flat()
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP, ScrollTrigger)
@@ -104,6 +123,12 @@ export function HeroSection() {
         { y: 0, opacity: 1, duration: 0.75, stagger: 0.08 },
         "-=0.85"
       )
+      .fromTo(
+        ".hero-mail-marquee",
+        { y: 18, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.75 },
+        "-=0.7"
+      )
 
     gsap.to(".hero-orbit-one", {
       rotate: 360,
@@ -140,6 +165,69 @@ export function HeroSection() {
         start: "top top",
         end: "bottom top",
         scrub: 1.5,
+      },
+    })
+
+    const marqueeTween = gsap.to(".hero-mail-track", {
+      xPercent: -50,
+      duration: 120, // 40 items, ~3 seconds per item
+      repeat: -1,
+      ease: "none",
+      force3D: true, // Forces GPU acceleration for smoother continuous loop
+    })
+
+    // Advance progress to half so it can infinitely loop in both directions instantly without hitting 0 bounds.
+    marqueeTween.progress(0.5);
+
+    ScrollTrigger.create({
+      trigger: root,
+      start: "top bottom",
+      end: "bottom top",
+      onUpdate: (self) => {
+        // Change direction based on scroll (-1 for up = move right, 1 for down = move left)
+        const direction = self.direction === -1 ? -1 : 1
+        
+        // Boost speed smoothly based on scroll velocity (parallax effect)
+        let velocity = Math.max(0.2, Math.abs(self.getVelocity() / 300))
+        
+        gsap.to(marqueeTween, {
+          timeScale: direction * (1 + velocity),
+          duration: 0.5,
+          overwrite: true,
+        })
+        
+        // Return to normal speed when scroll stops, maintaining the current direction
+        gsap.to(marqueeTween, {
+          timeScale: direction,
+          duration: 1,
+          delay: 0.2,
+          overwrite: "auto",
+        })
+      }
+    })
+
+    gsap.to(".hero-mail-motion", {
+      y: -54,
+      scale: 1.04,
+      ease: "none",
+      force3D: true,
+      scrollTrigger: {
+        trigger: root,
+        start: "top top",
+        end: "bottom top",
+        scrub: 1.2,
+      },
+    })
+
+    gsap.to(".hero-mail-parallax", {
+      x: -150, // Move by fixed pixel amount instead of huge percentage of w-max
+      ease: "none",
+      force3D: true,
+      scrollTrigger: {
+        trigger: root,
+        start: "top top",
+        end: "bottom top",
+        scrub: 1, // Smoother scrub
       },
     })
 
@@ -444,6 +532,38 @@ export function HeroSection() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div className="hero-mail-motion relative left-1/2 z-10 mt-12 w-screen -translate-x-1/2 sm:mt-14">
+        <div
+          className="hero-mail-marquee relative overflow-hidden py-2 opacity-0 sm:py-3"
+          style={{
+            maskImage: "linear-gradient(to right, transparent 0%, black 9%, black 91%, transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 9%, black 91%, transparent 100%)",
+          }}
+        >
+          <div className="hero-mail-parallax w-max will-change-transform">
+            <div className="hero-mail-track flex w-max items-center gap-7 sm:gap-10 will-change-transform">
+              {mailMarqueeItems.map((provider, index) => {
+                const Icon = provider.icon
+
+                return (
+                  <div
+                    key={`${provider.name}-${index}`}
+                    className="group flex items-center justify-center px-1"
+                    aria-label={provider.name}
+                  >
+                    <Icon
+                      className="h-8 w-8 opacity-45 grayscale transition-all duration-300 group-hover:scale-110 group-hover:opacity-90 group-hover:grayscale-0 sm:h-9 sm:w-9"
+                      style={{ color: provider.color }}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
