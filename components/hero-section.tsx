@@ -355,15 +355,11 @@ export function HeroSection() {
             <div className="hero-actions mt-7 opacity-0">
               <Link
                 href="/craft"
-                className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full px-7 py-3.5 text-sm font-medium text-white transition-all duration-300 hover:-translate-y-0.5 sm:px-8 sm:text-base"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 55%, #8b5cf6 100%)",
-                  boxShadow: "0 0 0 1px rgba(139,92,246,0.45), 0 12px 40px -10px rgba(109,40,217,0.65), inset 0 1px 0 rgba(255,255,255,0.12)",
-                }}
+                className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_rgba(255,255,255,0.4)] sm:px-8 sm:text-base"
               >
                 <span
                   className="pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                  style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0))" }}
+                  style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0))" }}
                 />
                 <span className="relative">Craft your first draft</span>
                 <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
@@ -452,26 +448,26 @@ export function HeroSection() {
                       </div>
                     </div>
                     <div className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-widest text-gray-400">
-                      Draft 01
+                      Draft
                     </div>
                   </div>
 
                   <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.03]">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-400/80">Subject</p>
                     <p className="mt-1.5 text-[15px] font-medium text-white tracking-tight">
-                      A quick idea for your product growth team
+                      SWE Intern for Acme's Growth Pod
                     </p>
                   </div>
 
                   <div className="mt-4 space-y-3 text-[14px] leading-relaxed text-gray-300">
                     <p>
-                      <span className="text-white font-medium">Hi Riya,</span> loved how Acme is simplifying onboarding for first-time users.
+                      <span className="text-white font-medium">Hi Alex,</span> noticed Acme just shipped the new workspace sync. Beautifully executed.
                     </p>
                     <p>
-                      I build React product experiments fast and would love to bring that execution pace to your team.
+                      I'm a CS undergrad who builds & ships React projects quickly. I'm looking to bring that same velocity to your growth team as a summer intern.
                     </p>
                     <p>
-                      If useful, I can share a couple of projects directly relevant to this role.
+                      Can I share a live app I built using your exact tech stack?
                     </p>
                   </div>
 
