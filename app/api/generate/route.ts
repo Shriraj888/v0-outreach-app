@@ -57,7 +57,13 @@ export async function POST(request: NextRequest) {
     // Check if the API key is an OpenRouter key (starts with sk-or-)
     if (apiKey.startsWith("sk-or-")) {
       const { createOpenRouter } = await import("@openrouter/ai-sdk-provider")
-      const openrouter = createOpenRouter({ apiKey })
+      const openrouter = createOpenRouter({ 
+        apiKey,
+        headers: {
+          "HTTP-Referer": "https://cold-mail-crafter.vercel.app",
+          "X-Title": "Cold Mail Crafter"
+        }
+      })
       // Use a reliable free model on OpenRouter
       model = openrouter("google/gemma-3-27b-it:free")
     } else {
