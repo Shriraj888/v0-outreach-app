@@ -23,19 +23,19 @@ const proofItems: Array<{
   value: string
   label: string
 }> = [
-  {
-    value: "3 angles",
-    label: "One brief. Three tones.",
-  },
-  {
-    value: "12 sec",
-    label: "Blank page to first draft.",
-  },
-  {
-    value: "Reply-ready",
-    label: "Sounds human, not generated.",
-  },
-]
+    {
+      value: "3 angles",
+      label: "One brief. Three tones.",
+    },
+    {
+      value: "12 sec",
+      label: "Blank page to first draft.",
+    },
+    {
+      value: "Reply-ready",
+      label: "Sounds human, not generated.",
+    },
+  ]
 
 const toneItems = [
   {
@@ -60,11 +60,11 @@ const mailProviders: Array<{
   icon: IconType
   color: string
 }> = [
-  { name: "Gmail", icon: SiGmail, color: "#EA4335" },
-  { name: "Yahoo", icon: FaYahoo, color: "#7B0099" },
-  { name: "Microsoft", icon: FaMicrosoft, color: "#00A4EF" },
-  { name: "Zoho", icon: SiZoho, color: "#F59E0B" },
-]
+    { name: "Gmail", icon: SiGmail, color: "#EA4335" },
+    { name: "Yahoo", icon: FaYahoo, color: "#7B0099" },
+    { name: "Microsoft", icon: FaMicrosoft, color: "#00A4EF" },
+    { name: "Zoho", icon: SiZoho, color: "#F59E0B" },
+  ]
 
 const mailMarqueeItems = Array(20).fill(mailProviders).flat()
 
@@ -81,7 +81,7 @@ export function HeroSection() {
   const handleCraftNavigation = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
     e.preventDefault();
     setIsNavigating(true);
-    
+
     // Zoom out the whole container perfectly to create a "warping" feel, then navigate
     gsap.to(container.current, {
       scale: 0.98,
@@ -90,7 +90,7 @@ export function HeroSection() {
       ease: "power3.inOut",
       onComplete: () => {
         router.push('/craft');
-        setTimeout(() => setIsNavigating(false), 500); 
+        setTimeout(() => setIsNavigating(false), 500);
       }
     });
   };
@@ -207,16 +207,16 @@ export function HeroSection() {
       onUpdate: (self) => {
         // Change direction based on scroll (-1 for up = move right, 1 for down = move left)
         const direction = self.direction === -1 ? -1 : 1
-        
+
         // Boost speed smoothly based on scroll velocity (parallax effect)
         let velocity = Math.max(0.2, Math.abs(self.getVelocity() / 300))
-        
+
         gsap.to(marqueeTween, {
           timeScale: direction * (1 + velocity),
           duration: 0.5,
           overwrite: true,
         })
-        
+
         // Return to normal speed when scroll stops, maintaining the current direction
         gsap.to(marqueeTween, {
           timeScale: direction,
@@ -377,15 +377,14 @@ export function HeroSection() {
               <Link
                 href="/craft"
                 onClick={handleCraftNavigation}
-                className={`group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 transition-all duration-300 sm:px-8 sm:text-base ${
-                  isNavigating ? "scale-95 shadow-none opacity-80" : "hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_rgba(255,255,255,0.4)]"
-                }`}
+                className={`group relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-gray-900 transition-all duration-300 sm:px-8 sm:text-base ${isNavigating ? "scale-95 shadow-none opacity-80" : "hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-10px_rgba(255,255,255,0.4)]"
+                  }`}
               >
                 <span
                   className="pointer-events-none absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                   style={{ background: "linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0))" }}
                 />
-                
+
                 {isNavigating ? (
                   <>
                     <Loader2 className="relative h-5 w-5 animate-spin" />

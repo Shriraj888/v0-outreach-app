@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Github, Linkedin, Loader2, ArrowUpRight } from "lucide-react"
+import { Github, Linkedin, Loader2, ArrowUpRight, Mail } from "lucide-react"
 import { useState } from "react"
 
 const socialLinks = [
@@ -62,7 +62,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-24 w-full">
           <div className="col-span-1 md:col-span-2 lg:col-span-2">
             <h3 className="text-2xl font-semibold tracking-tight text-white mb-4 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center font-bold text-lg">O</span>
+              <div className="relative w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                <Mail className="w-4 h-4 text-gray-900 relative z-10" />
+              </div>
               Outreach
             </h3>
             <p className="text-gray-400 text-[15px] leading-relaxed max-w-sm">
