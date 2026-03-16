@@ -41,7 +41,7 @@ export function ProTips({ tips }: ProTipsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
         {tips.map((tip, idx) => {
           const Icon = icons[idx % icons.length]
           const isHovered = hoveredIdx === idx
@@ -56,7 +56,7 @@ export function ProTips({ tips }: ProTipsProps) {
               transition={{ duration: 0.5, delay: idx * 0.15 }}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className={`group relative flex flex-col p-6 md:p-8 rounded-[32px] transition-all duration-500 cursor-default ${
+              className={`group relative flex flex-col p-4 md:p-8 rounded-[24px] md:rounded-[32px] transition-all duration-500 cursor-default ${
                 isOtherHovered ? "opacity-30 scale-[0.97]" : "opacity-100 scale-100"
               } bg-[#0a0a0a] border border-white/[0.06] ${accent.border} overflow-hidden`}
               style={{
@@ -64,26 +64,26 @@ export function ProTips({ tips }: ProTipsProps) {
               }}
             >
               {/* Massive background number watermark */}
-              <div className="absolute -top-6 -right-4 md:-top-10 md:-right-8 text-[140px] md:text-[200px] font-black text-white/[0.02] leading-none select-none pointer-events-none transition-transform duration-700 group-hover:-translate-x-4 group-hover:translate-y-4">
+              <div className="absolute -top-4 -right-2 md:-top-10 md:-right-8 text-[100px] md:text-[200px] font-black text-white/[0.02] leading-none select-none pointer-events-none transition-transform duration-700 group-hover:-translate-x-4 group-hover:translate-y-4">
                 {idx + 1}
               </div>
 
               {/* Glowing accent spot under icon */}
-              <div className={`absolute top-8 left-8 w-20 h-20 ${accent.glow} rounded-full blur-[40px] transition-opacity duration-500 opacity-0 group-hover:opacity-100`} />
+              <div className={`absolute top-4 left-4 md:top-8 md:left-8 w-16 h-16 md:w-20 md:h-20 ${accent.glow} rounded-full blur-[40px] transition-opacity duration-500 opacity-0 group-hover:opacity-100`} />
 
               <div className="relative z-10 flex-grow">
-                <div className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-white/[0.04] text-white/50 mb-8 border border-white/[0.05] transition-all duration-500 group-hover:scale-110 ${accent.bg} ${accent.text}`}>
-                  <Icon className="w-6 h-6" strokeWidth={1.5} />
+                <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/[0.04] text-white/50 mb-4 md:mb-8 border border-white/[0.05] transition-all duration-500 group-hover:scale-110 ${accent.bg} ${accent.text}`}>
+                  <Icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.5} />
                 </div>
                 
-                <p className="text-[15px] text-gray-400 leading-relaxed font-light mb-8 group-hover:text-gray-100 transition-colors duration-500">
+                <p className="text-[12px] md:text-[15px] text-gray-400 leading-relaxed font-light mb-4 md:mb-8 group-hover:text-gray-100 transition-colors duration-500 line-clamp-4 md:line-clamp-none">
                   {tip}
                 </p>
               </div>
 
-              <div className={`relative z-10 mt-auto flex items-center text-sm font-semibold text-white/30 ${accent.text} transition-colors duration-500`}>
+              <div className={`relative z-10 mt-auto flex items-center text-[11px] md:text-sm font-semibold text-white/30 ${accent.text} transition-colors duration-500`}>
                 <span>Implement</span>
-                <ArrowUpRight className="w-5 h-5 ml-1 opacity-0 -translate-y-2 translate-x-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500" />
+                <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 ml-1 opacity-0 -translate-y-2 translate-x-2 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-500" />
               </div>
             </motion.div>
           )
