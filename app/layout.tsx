@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
+import { LenisProvider } from '@/components/lenis-provider'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -20,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased text-foreground`}>
-        {children}
-        <Toaster position="bottom-right" theme="dark" />
-        <Analytics />
+        <LenisProvider>
+          {children}
+          <Toaster position="bottom-right" theme="dark" />
+          <Analytics />
+        </LenisProvider>
       </body>
     </html>
   )
