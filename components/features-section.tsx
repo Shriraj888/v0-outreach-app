@@ -278,30 +278,30 @@ export function FeaturesSection() {
               <BentoCard accentRGB="34,211,238" spotlightSize="md">
                 <div className="absolute inset-x-0 top-0 h-[55%] flex flex-col items-center justify-center z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-500/[0.08] to-transparent">
                   
-                  <div className="flex flex-col gap-4 bg-[#0a0a0a]/90 border border-white/10 p-5 rounded-2xl w-[85%] max-w-[340px] shadow-[0_20px_40px_-10px_rgba(34,211,238,0.1)] group-hover:-translate-y-2 transition-transform duration-500 z-10 relative">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+                  <div className="flex flex-col gap-5 bg-[#0a0a0a]/90 border border-white/10 p-6 sm:p-7 rounded-[20px] w-[90%] max-w-[420px] shadow-[0_20px_40px_-10px_rgba(34,211,238,0.1)] group-hover:-translate-y-2 transition-transform duration-500 z-10 relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-[20px] blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
                     
                     <div className="flex justify-between items-center relative z-10">
-                      <span className="text-[13px] font-medium text-white/70">Export to Mail Client</span>
-                      <div className="flex gap-2">
-                        <div className="w-6 h-6 rounded-md bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
-                          <span className="text-[10px] font-bold text-red-400">G</span>
+                      <span className="text-[15px] sm:text-base font-medium text-white/80">Export to Mail Client</span>
+                      <div className="flex gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] transition-colors hover:bg-red-500/20 cursor-default">
+                          <span className="text-[12px] font-bold text-red-400">G</span>
                         </div>
-                        <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">
-                          <span className="text-[10px] font-bold text-blue-400">O</span>
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.15)] transition-colors hover:bg-blue-500/20 cursor-default">
+                          <span className="text-[12px] font-bold text-blue-400">O</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="w-full h-[1px] bg-white/10 relative z-10"></div>
 
-                    <div className="flex items-center gap-3 relative z-10">
-                      <div className="w-10 h-10 rounded-[10px] shrink-0 bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30">
-                        <ExternalLink className="w-5 h-5 text-cyan-400" />
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-12 h-12 rounded-[12px] shrink-0 bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30">
+                        <ExternalLink className="w-6 h-6 text-cyan-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[13px] text-white/90 font-medium tracking-tight mb-0.5">Draft exported successfully</span>
-                        <span className="text-[11px] text-cyan-400 flex items-center gap-1 font-mono">Redirecting to platform<span className="animate-pulse">...</span></span>
+                        <span className="text-[15px] sm:text-base text-white/95 font-medium tracking-tight mb-0.5">Draft exported successfully</span>
+                        <span className="text-[12px] sm:text-[13px] text-cyan-400 flex items-center gap-1 font-mono">Redirecting to platform<span className="animate-pulse">...</span></span>
                       </div>
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export function FeaturesSection() {
                 <CardContent
                   icon={<ExternalLink className="w-5 h-5 text-cyan-400" />}
                   title="1-Click Client Export"
-                  description="Select your preferred mailing platform natively. We instantly populate the compose window with your AI-generated copy—just enter the recipient and hit send."
+                  description="Select your preferred mailing platform natively. We instantly populate the compose window with your AI-generated copy just enter the recipient and hit send."
                   accentRGB="34,211,238"
                   wide
                 />
