@@ -1,7 +1,7 @@
 "use client"
 
-import { BrainCircuit, ShieldCheck, SlidersHorizontal, Sparkles, Terminal } from "lucide-react"
-import { useRef } from "react"
+import { Bot, FileEdit, RefreshCcw, Send, Lightbulb, Sparkles, ExternalLink } from "lucide-react"
+import { useRef, type ReactNode } from "react"
 import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -10,236 +10,351 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP, ScrollTrigger);
 }
 
+// ── Reusable Bento Card wrapper ──────────────────────────────────────
+interface BentoCardProps {
+  children: ReactNode;
+  accentRGB: string;           // CSS rgb values e.g. "168,85,247"
+  className?: string;          // custom layout classes
+  spotlightSize?: "sm" | "md" | "lg";
+}
+
+function BentoCard({ children, accentRGB, className = "", spotlightSize = "md" }: BentoCardProps) {
+  const sizeMap = {
+    sm: "w-[350px] h-[350px]",
+    md: "w-[500px] h-[500px]",
+    lg: "w-[800px] h-[800px]",
+  }
+  
+  return (
+    <div className={`bento-card group relative rounded-[28px] overflow-hidden transform-gpu opacity-0 w-full h-full ${className}`}
+      style={{
+        background: `linear-gradient(160deg, rgba(${accentRGB},0.06) 0%, rgba(255,255,255,0.025) 40%, rgba(${accentRGB},0.03) 100%)`,
+        border: '1px solid rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(24px)',
+      }}
+    >
+      {/* Mouse‑following spotlight */}
+      <div className={`spotlight-effect absolute ${sizeMap[spotlightSize]} rounded-full blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 z-0`}
+        style={{ background: `rgba(${accentRGB},0.10)` }} />
+
+      {/* Animated top gradient line */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] overflow-hidden">
+        <div className="w-full h-full animate-[shimmer_3s_ease-in-out_infinite]"
+          style={{
+            background: `linear-gradient(90deg, transparent, rgba(${accentRGB},0.5), transparent)`,
+          }} />
+      </div>
+
+      {/* Subtle inner glow on hover */}
+      <div className="absolute inset-0 rounded-[28px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+        style={{
+          boxShadow: `inset 0 0 80px -20px rgba(${accentRGB},0.08)`,
+        }} />
+
+      {children}
+    </div>
+  );
+}
+
+// ── Reusable bottom content block (icon + title + desc) ──────────────
+interface CardContentProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  accentRGB: string;
+  wide?: boolean;
+}
+
+function CardContent({ icon, title, description, accentRGB, wide }: CardContentProps) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 pointer-events-none z-10 w-full flex flex-col justify-end">
+      <div className="w-11 h-11 rounded-[14px] flex items-center justify-center mb-4 transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg bg-gray-900/50"
+        style={{
+          background: `linear-gradient(135deg, rgba(${accentRGB},0.18), rgba(${accentRGB},0.08))`,
+          border: `1px solid rgba(${accentRGB},0.25)`,
+          boxShadow: `0 0 20px -5px rgba(${accentRGB},0.15)`,
+        }}>
+        {icon}
+      </div>
+      <h3 className="text-[20px] font-semibold text-white mb-2.5 tracking-tight">{title}</h3>
+      <p className={`text-gray-400 leading-[1.65] text-[14px] font-light ${wide ? "max-w-md" : ""}`}>
+        {description}
+      </p>
+    </div>
+  );
+}
+
+// ── Main Features Section ────────────────────────────────────────────
 export function FeaturesSection() {
   const container = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: container.current,
-        start: "top 65%",
-      }
-    });
+    const scrollConfig = { trigger: container.current, start: "top 65%" };
+    const tl = gsap.timeline({ scrollTrigger: scrollConfig });
 
     // Header animation
     tl.fromTo(".feature-badge",
       { y: 20, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
     );
-    tl.fromTo(".feature-title span", 
+    tl.fromTo(".feature-title span",
       { y: 80, opacity: 0, rotateX: -40 },
       { y: 0, opacity: 1, rotateX: 0, duration: 1.2, stagger: 0.15, ease: "expo.out" },
       "-=0.6"
     );
 
-    // Initial Card entrance
+    // Cards entrance
     tl.fromTo(".bento-card",
       { y: 100, opacity: 0, scale: 0.95 },
       { y: 0, opacity: 1, scale: 1, duration: 1.2, stagger: 0.1, ease: "power4.out" },
       "-=0.8"
     );
 
-    // Dynamic Mouse Spotlight effect on cards using quickTo
-    const cards = gsap.utils.toArray<HTMLElement>(".bento-card");
-    cards.forEach((card) => {
+    // ── Spotlight (quickTo) ──
+    gsap.utils.toArray<HTMLElement>(".bento-card").forEach((card) => {
       const effect = card.querySelector('.spotlight-effect') as HTMLElement;
       if (!effect) return;
-      
+
       const xTo = gsap.quickTo(effect, "x", { duration: 0.4, ease: "power3" });
       const yTo = gsap.quickTo(effect, "y", { duration: 0.4, ease: "power3" });
 
-      card.addEventListener("mousemove", (e) => {
+      const handleMouseMove = (e: MouseEvent) => {
         const rect = card.getBoundingClientRect();
         xTo(e.clientX - rect.left);
         yTo(e.clientY - rect.top);
-      });
-      
-      card.addEventListener("mouseenter", () => {
-        gsap.to(effect, { opacity: 1, duration: 0.3, scale: 1.2 });
-      });
-      
-      card.addEventListener("mouseleave", () => {
-        gsap.to(effect, { opacity: 0, duration: 0.5, scale: 1 });
-      });
+      };
+
+      card.addEventListener("mousemove", handleMouseMove);
+      card.addEventListener("mouseenter", () => gsap.to(effect, { opacity: 1, duration: 0.3, scale: 1.2 }));
+      card.addEventListener("mouseleave", () => gsap.to(effect, { opacity: 0, duration: 0.5, scale: 1 }));
     });
 
-    // Content Micro-animations
-    
-    // Card 1: Terminal Cursor Blinking
-    gsap.to(".term-cursor", { opacity: 0, repeat: -1, yoyo: true, duration: 0.5, ease: "steps(1)" });
+    // ── Micro‑animations ──
+    // Terminal cursor blink
+    gsap.to(".term-cursor", { opacity: 0, repeat: -1, yoyo: true, duration: 0.4, ease: "steps(1)" });
 
-    // Card 2: Deliverability Score Build UI
-    gsap.fromTo(".score-num", 
-      { textContent: 0 }, 
-      { 
-        textContent: 99, 
-        duration: 2.5, 
-        ease: "power3.out", 
-        snap: { textContent: 1 },
-        scrollTrigger: { trigger: ".score-container", start: "top 80%" }
-      }
-    );
-    // Circumference of r=45 is ~283 
-    gsap.fromTo(".score-ring", 
-      { strokeDashoffset: 283 }, 
-      { 
-        strokeDashoffset: 5, // Leaves a small gap to hit 99%
-        duration: 2.5, 
-        ease: "power3.out",
-        scrollTrigger: { trigger: ".score-container", start: "top 80%" }
-      }
-    );
+    // Regeneration Icon Spin
+    gsap.to(".regen-spin", {
+      rotation: 360,
+      repeat: -1,
+      duration: 6,
+      ease: "linear"
+    });
 
-    // Card 3: Tone Pills Sequencer
-    gsap.to(".tone-pill", { 
-        boxShadow: "0 0 40px -5px var(--glow-color)",
-        opacity: 1,
-        stagger: {
-          amount: 1.5,
-          yoyo: true,
-          repeat: -1,
-        },
-        duration: 0.8, 
-        ease: "power1.inOut",
-        scrollTrigger: { trigger: ".tone-container", start: "top 80%" }
+    // Floating UI elements
+    gsap.to(".float-ui", {
+      y: -5,
+      repeat: -1,
+      yoyo: true,
+      duration: 2,
+      ease: "sine.inOut",
+      stagger: 0.2
     });
 
   }, { scope: container });
 
   return (
     <section id="features" ref={container} className="relative py-32 sm:py-40 overflow-hidden perspective-1000">
-      
+
+      {/* Background grid */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-grid opacity-[0.03]" />
       </div>
 
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8">
-        
-        {/* Header Section */}
+
+        {/* ── Header ─────────────────────────────────────────────── */}
         <div className="text-center mb-20 sm:mb-24 flex flex-col items-center">
-          <div className="feature-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] mb-8 opacity-0">
+          <div className="feature-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] mb-8 opacity-0">
             <Sparkles className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Bento Masterpiece</span>
+            <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Core Capabilities</span>
           </div>
-          
+
           <h2 className="feature-title text-4xl sm:text-5xl md:text-6xl lg:text-[72px] font-semibold tracking-[-0.03em] text-white leading-[1.05] flex flex-col items-center justify-center">
-            <span className="block transform-gpu origin-bottom opacity-0 mb-1 lg:mb-2">Precision tooling.</span>
-            <span className="block bg-gradient-to-r from-gray-300 to-gray-600 bg-clip-text text-transparent transform-gpu origin-bottom opacity-0 pb-2">For the inbox.</span>
+            <span className="block transform-gpu origin-bottom opacity-0 mb-1 lg:mb-2">The complete toolkit.</span>
+            <span className="block bg-gradient-to-r from-gray-300 to-gray-600 bg-clip-text text-transparent transform-gpu origin-bottom opacity-0 pb-2">End-to-end outreach.</span>
           </h2>
         </div>
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[400px] md:auto-rows-[420px]">
+        {/* ── Custom Heights Bento Grid Structure ────────────────── */}
+        <div className="flex flex-col gap-6 w-full">
           
-          {/* Card 1: Context Engine (Span 2) */}
-          <div className="bento-card relative md:col-span-2 group rounded-[28px] bg-white/[0.03] border border-white/[0.06] overflow-hidden transform-gpu opacity-0 backdrop-blur-xl">
-            <div className="spotlight-effect absolute w-[500px] h-[500px] bg-purple-500/[0.06] rounded-full blur-[80px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 z-0" />
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/[0.06]" />
+          {/* Top Row: AI Generation (Span 2) + Manual Edit (Span 1) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-auto md:h-[460px]">
             
-            {/* Visual Header Graphic */}
-            <div className="absolute inset-x-0 top-0 h-[55%] bg-gradient-to-b from-purple-500/[0.08] to-transparent flex items-center justify-center">
-              <div className="w-[80%] max-w-[420px] rounded-xl border border-white/[0.08] bg-gray-900 shadow-2xl overflow-hidden font-mono text-[11px] sm:text-xs z-10 group-hover:-translate-y-2 transition-transform duration-500">
-                <div className="flex items-center px-4 py-2 border-b border-white/10 bg-white/[0.05]">
-                  <div className="flex gap-1.5 ">
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50"/><div className="w-2.5 h-2.5 rounded-full bg-amber-500/50"/><div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50"/>
+            {/* 1. Cold Mails Generation (Span 2) */}
+            <div className="md:col-span-2 h-[440px] md:h-full">
+              <BentoCard accentRGB="168,85,247" spotlightSize="md">
+                <div className="absolute inset-x-0 top-0 h-[65%] pt-8 sm:pt-10 bg-gradient-to-b from-purple-500/[0.08] to-transparent flex justify-center items-start">
+                  <div className="w-[85%] max-w-[480px] rounded-xl border border-white/[0.08] bg-[#0a0a0a]/90 shadow-[0_30px_60px_-15px_rgba(168,85,247,0.15)] overflow-hidden font-mono text-[10px] sm:text-[12px] md:text-[13px] z-10 group-hover:-translate-y-2 transition-transform duration-500">
+                    <div className="flex items-center px-4 py-3 border-b border-white/10 bg-white/[0.03]">
+                      <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+                      </div>
+                      <span className="ml-4 text-white/40 truncate">generate.ts</span>
+                    </div>
+                    <div className="p-5 space-y-2.5 text-white/60 bg-[#050505]/50 leading-relaxed">
+                      <div><span className="text-purple-400">await</span> <span className="text-blue-400">AI</span>.<span className="text-cyan-400">generateEmail</span>({`{`}</div>
+                      <div className="pl-6"><span className="text-white/80">&quot;intent&quot;</span>: <span className="text-emerald-400">&quot;Meeting Request&quot;</span>,</div>
+                      <div className="pl-6"><span className="text-white/80">&quot;recipient&quot;</span>: <span className="text-emerald-400">&quot;VPE at TechScale&quot;</span></div>
+                      <div>{`}`})</div>
+                      <div className="mt-4 pt-4 border-t border-white/[0.05] flex items-center gap-2 text-cyan-300">
+                        <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" /> 
+                        Synthesizing hyper-personalized copy...
+                        <span className="term-cursor inline-block w-2 h-4 align-middle bg-white/70" />
+                      </div>
+                    </div>
                   </div>
-                  <span className="ml-4 text-white/30 truncate hidden sm:block">ai_context_engine.ts</span>
                 </div>
-                <div className="p-4 space-y-2 text-white/50 bg-gray-950/50">
-                  <div><span className="text-purple-400">const</span> <span className="text-blue-400">payload</span> = <span className="text-amber-300">await</span> <span className="text-cyan-400">analyzeTarget</span>({`{`}</div>
-                  <div className="pl-4"><span className="text-white/80">"recipient"</span>: <span className="text-emerald-400">"CTO @ Fintech Startup"</span>,</div>
-                  <div className="pl-4"><span className="text-white/80">"intent"</span>: <span className="text-emerald-400">"Demo Meeting"</span>,</div>
-                  <div className="pl-4"><span className="text-white/80">"temperature"</span>: <span className="text-orange-400">0.8</span></div>
-                  <div>{`}`});<span className="term-cursor inline-block w-2 h-3.5 align-middle ml-1 bg-white/70" /></div>
-                </div>
-              </div>
+                <CardContent
+                  icon={<Bot className="w-5 h-5 text-purple-400" />}
+                  title="AI Cold Mail Generation"
+                  description="Leverage advanced LLMs to automatically forge unique, highly-contextualized outreach copy that cuts through the noise and guarantees high reply rates."
+                  accentRGB="168,85,247"
+                  wide
+                />
+              </BentoCard>
             </div>
 
-            {/* Content Bottom */}
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 pointer-events-none z-10">
-              <div className="w-10 h-10 rounded-[12px] bg-purple-500/[0.12] border border-purple-500/20 flex items-center justify-center mb-4 shadow-inner group-hover:bg-purple-500/[0.18] transition-colors">
-                <BrainCircuit className="w-4 h-4 text-purple-400" />
-              </div>
-              <h3 className="text-[20px] font-semibold text-white mb-2 tracking-tight">LLM Context Engine</h3>
-              <p className="text-gray-500 leading-[1.6] text-[14px] font-light max-w-sm">Dynamically synthesizes recipient metadata and outreach intent to generate zero-shot, bespoke copy without static templates.</p>
+            {/* 2. Editable Mails (Span 1) */}
+            <div className="md:col-span-1 h-[420px] md:h-full">
+              <BentoCard accentRGB="16,185,129" spotlightSize="sm">
+                <div className="absolute inset-x-0 top-0 h-[55%] flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/[0.06] to-transparent p-6 z-10">
+                  <div className="bg-gray-900 border border-white/10 p-5 rounded-2xl text-[13px] text-white/50 shadow-xl group-hover:scale-105 transition-transform duration-500 ease-out w-full max-w-[280px]">
+                    <p className="mb-2">Hi Sarah,</p>
+                    <p className="leading-relaxed">
+                      I loved your recent post about <span className="text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-1 rounded relative z-10 group/edit cursor-pointer transition-colors hover:bg-emerald-500/20">
+                        scaling teams
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#111] text-emerald-400 border border-emerald-500/30 px-2 py-1.5 rounded-md text-[10px] whitespace-nowrap opacity-0 group-hover/edit:opacity-100 transition-opacity font-medium tracking-wide shadow-lg flex items-center gap-1.5">
+                          <FileEdit className="w-3 h-3" /> Manual Override
+                        </span>
+                      </span>. Are you open to a quick call?
+                    </p>
+                  </div>
+                </div>
+                <CardContent
+                  icon={<FileEdit className="w-5 h-5 text-emerald-400" />}
+                  title="Full Editing Control"
+                  description="Don't lose your human touch. Visually review and flawlessly intervene on any AI-generated drafts before dispatching."
+                  accentRGB="16,185,129"
+                />
+              </BentoCard>
             </div>
+
           </div>
 
-          {/* Card 2: Deliverability Shield (Span 1) */}
-          <div className="bento-card relative md:col-span-1 group rounded-[28px] bg-white/[0.03] border border-white/[0.06] overflow-hidden transform-gpu opacity-0 backdrop-blur-xl">
-            <div className="spotlight-effect absolute w-[350px] h-[350px] bg-emerald-500/[0.08] rounded-full blur-[80px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 z-0" />
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/[0.06]" />
+          {/* Middle Row: Regeneration (Span 1) + Direct Sending (Span 2) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-auto md:h-[420px]">
             
-            {/* Visual Graphic */}
-            <div className="absolute inset-x-0 top-0 h-[55%] flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/[0.08] to-transparent">
-              <div className="relative w-32 h-32 score-container z-10 group-hover:scale-105 transition-transform duration-500">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="6" fill="none" className="text-white/[0.06]" />
-                  <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="6" fill="none" className="text-emerald-500 score-ring drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" strokeDasharray="283" strokeDashoffset="283" strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center flex-col shadow-inner">
-                  <span className="text-3xl font-bold text-white tracking-tighter drop-shadow-md"><span className="score-num">0</span><span className="text-emerald-400 text-xl">%</span></span>
+            {/* 3. Mail Regeneration (Span 1) */}
+            <div className="md:col-span-1 h-[400px] md:h-full">
+              <BentoCard accentRGB="59,130,246" spotlightSize="sm">
+                <div className="absolute inset-x-0 top-0 h-[55%] flex items-center justify-center z-10 from-blue-500/[0.05] bg-gradient-to-b to-transparent">
+                  <div className="relative w-full h-full flex flex-col items-center justify-center -translate-y-4">
+                    <div className="relative w-28 h-28 rounded-full border-[1px] border-dashed border-blue-500/30 flex items-center justify-center bg-blue-500/[0.02] regen-spin shadow-[0_0_30px_rgba(59,130,246,0.15)] group-hover:border-blue-500/50 transition-colors duration-700">
+                      <div className="w-16 h-16 rounded-full border border-blue-500/20 flex items-center justify-center bg-gray-950/80 backdrop-blur-md">
+                        <RefreshCcw className="w-6 h-6 text-blue-400" />
+                      </div>
+                    </div>
+                    {/* Floating elements */}
+                    <div className="float-ui absolute top-[25%] left-[20%] px-3 py-1.5 bg-gray-900 border border-white/10 rounded-lg text-[10px] text-blue-300 shadow-xl backdrop-blur-md rotate-[-10deg]">Variant A</div>
+                    <div className="float-ui absolute bottom-[20%] right-[15%] px-3 py-1.5 bg-gray-900 border border-white/10 rounded-lg text-[10px] text-pink-300 shadow-xl backdrop-blur-md rotate-[12deg] delay-100">Variant B</div>
+                    <div className="float-ui absolute top-[15%] right-[25%] px-3 py-1.5 bg-gray-900 border border-white/10 rounded-lg text-[10px] text-emerald-300 shadow-xl backdrop-blur-md rotate-[5deg] delay-300">Variant C</div>
+                  </div>
                 </div>
-              </div>
+                <CardContent
+                  icon={<RefreshCcw className="w-5 h-5 text-blue-400" />}
+                  title="One-Click Regeneration"
+                  description="Not quite the right tone? Effortlessly pivot email styles, structures, and angles to find the absolute perfect pitch with a single click."
+                  accentRGB="59,130,246"
+                />
+              </BentoCard>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 pointer-events-none z-10">
-              <div className="w-10 h-10 rounded-[12px] bg-emerald-500/[0.12] border border-emerald-500/20 flex items-center justify-center mb-4 shadow-inner group-hover:bg-emerald-500/[0.18] transition-colors">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              </div>
-              <h3 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Deliverability Optimization</h3>
-              <p className="text-gray-500 leading-[1.6] text-[14px] font-light">Automated heuristic scanning removes spam-trigger n-grams and optimizes syntax for maximum primary inbox placement.</p>
+            {/* 4. Client Handoff (Span 2) */}
+            <div className="md:col-span-2 h-[400px] md:h-full">
+              <BentoCard accentRGB="34,211,238" spotlightSize="md">
+                <div className="absolute inset-x-0 top-0 h-[55%] flex flex-col items-center justify-center z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-500/[0.08] to-transparent">
+                  
+                  <div className="flex flex-col gap-4 bg-[#0a0a0a]/90 border border-white/10 p-5 rounded-2xl w-[85%] max-w-[340px] shadow-[0_20px_40px_-10px_rgba(34,211,238,0.1)] group-hover:-translate-y-2 transition-transform duration-500 z-10 relative">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+                    
+                    <div className="flex justify-between items-center relative z-10">
+                      <span className="text-[13px] font-medium text-white/70">Export to Mail Client</span>
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 rounded-md bg-red-500/10 flex items-center justify-center border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                          <span className="text-[10px] font-bold text-red-400">G</span>
+                        </div>
+                        <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">
+                          <span className="text-[10px] font-bold text-blue-400">O</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="w-full h-[1px] bg-white/10 relative z-10"></div>
+
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="w-10 h-10 rounded-[10px] shrink-0 bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30">
+                        <ExternalLink className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[13px] text-white/90 font-medium tracking-tight mb-0.5">Draft exported successfully</span>
+                        <span className="text-[11px] text-cyan-400 flex items-center gap-1 font-mono">Redirecting to platform<span className="animate-pulse">...</span></span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <CardContent
+                  icon={<ExternalLink className="w-5 h-5 text-cyan-400" />}
+                  title="1-Click Client Export"
+                  description="Select your preferred mailing platform natively. We instantly populate the compose window with your AI-generated copy—just enter the recipient and hit send."
+                  accentRGB="34,211,238"
+                  wide
+                />
+              </BentoCard>
             </div>
+
           </div>
 
-          {/* Card 3: Dynamic Tone Calibrator (Span 1) */}
-          <div className="bento-card relative md:col-span-1 group rounded-[28px] bg-white/[0.03] border border-white/[0.06] overflow-hidden transform-gpu opacity-0 backdrop-blur-xl">
-            <div className="spotlight-effect absolute w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[80px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 z-0" />
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/[0.06]" />
-            
-            <div className="absolute inset-x-0 top-0 h-[55%] flex items-center justify-center tone-container z-10">
-              <div className="flex flex-col gap-3 w-full px-10">
-                <div style={{"--glow-color": "rgba(59,130,246,0.3)"} as any} className="tone-pill px-4 py-3 rounded-[14px] border border-blue-500/30 bg-blue-500/10 text-blue-600 text-xs sm:text-sm font-semibold flex justify-between items-center opacity-30 box-shadow-[0_0_0_0_transparent] transition-all duration-300">
-                  FORMAL <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"/>
-                </div>
-                <div style={{"--glow-color": "rgba(236,72,153,0.3)"} as any} className="tone-pill px-4 py-3 rounded-[14px] border border-pink-500/30 bg-pink-500/10 text-pink-600 text-xs sm:text-sm font-semibold flex justify-between items-center opacity-30 box-shadow-[0_0_0_0_transparent] transition-all duration-300">
-                  BOLD <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.5)]"/>
-                </div>
-                <div style={{"--glow-color": "rgba(245,158,11,0.3)"} as any} className="tone-pill px-4 py-3 rounded-[14px] border border-amber-500/30 bg-amber-500/10 text-amber-600 text-xs sm:text-sm font-semibold flex justify-between items-center opacity-30 box-shadow-[0_0_0_0_transparent] transition-all duration-300">
-                  CASUAL <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"/>
-                </div>
-              </div>
-            </div>
+          {/* Bottom Row: Pro Tips (Span 3 - Full Width) */}
+          <div className="w-full h-auto md:h-[320px]">
+             <BentoCard accentRGB="245,158,11" spotlightSize="lg">
+                <div className="absolute inset-0 flex flex-col md:flex-row items-center p-8 md:p-12 z-10 gap-8 h-full bg-[radial-gradient(ellipse_at_top_right,_rgba(245,158,11,0.05),_transparent_60%)]">
+                  
+                  <div className="flex-1 max-w-xl md:pr-10">
+                    <div className="w-12 h-12 rounded-[16px] flex items-center justify-center mb-6 shadow-xl"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.05))`,
+                        border: `1px solid rgba(245,158,11,0.3)`,
+                        boxShadow: `0 0 30px -5px rgba(245,158,11,0.2)`,
+                      }}>
+                      <Lightbulb className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <h3 className="text-[26px] md:text-3xl font-semibold text-white mb-4 tracking-tight drop-shadow-sm">Strategic Pro Tips & Insights</h3>
+                    <p className="text-gray-400 leading-[1.7] text-[15px] font-light">
+                      Stop guessing what drives replies. Our platform natively provides actionable strategies, proven structural templates, and critical deliverability recommendations so you operate like a seasoned outbound veteran.
+                    </p>
+                  </div>
 
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 pointer-events-none z-10">
-              <div className="w-10 h-10 rounded-[12px] bg-blue-500/[0.12] border border-blue-500/20 flex items-center justify-center mb-4 shadow-inner group-hover:bg-blue-500/[0.18] transition-colors">
-                <SlidersHorizontal className="w-4 h-4 text-blue-400" />
-              </div>
-              <h3 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Dynamic Tone Calibration</h3>
-              <p className="text-gray-500 leading-[1.6] text-[14px] font-light">Algorithmic tone mapping adjusts lexical choice and pacing to align precisely with target recipient profiles.</p>
-            </div>
-          </div>
+                  <div className="flex-1 w-full flex justify-center md:justify-end border-t md:border-t-0 md:border-l border-white/10 pt-8 md:pt-0 md:pl-10 h-full items-center">
+                    <div className="bg-[#080808]/80 backdrop-blur-sm border border-amber-500/20 rounded-[20px] p-6 w-full max-w-sm hover:border-amber-500/50 transition-colors duration-500 shadow-[0_15px_40px_-15px_rgba(245,158,11,0.15)] relative group/tip cursor-default">
+                      <div className="absolute top-0 right-8 -mt-3.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.3)] group-hover/tip:shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-shadow">
+                        <Sparkles className="w-3 h-3" /> Live Insight
+                      </div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-[15px] font-semibold text-white/90">Deliverability Protection</span>
+                      </div>
+                      <p className="text-white/50 text-[13px] leading-relaxed">
+                        Always warm up your email accounts gradually. Scale your sending limits up consistently over 3 weeks to prevent severely damaging your domain reputation and hitting spam traps.
+                      </p>
+                    </div>
+                  </div>
 
-          {/* Card 4: Hyper-Personalized Tags (Span 2) */}
-          <div className="bento-card relative md:col-span-2 group rounded-[28px] bg-white/[0.03] border border-white/[0.06] overflow-hidden transform-gpu opacity-0 backdrop-blur-xl">
-            <div className="spotlight-effect absolute w-[500px] h-[500px] bg-cyan-500/[0.06] rounded-full blur-[80px] pointer-events-none -translate-x-1/2 -translate-y-1/2 opacity-0 z-0" />
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/[0.06]" />
-            
-            <div className="absolute inset-x-0 top-0 h-[60%] flex items-center justify-center z-10 border-b border-white/[0.04] p-4">
-              <div className="w-full max-w-[480px] p-4 sm:p-5 rounded-[18px] border border-white/[0.08] bg-gray-900 flex flex-col gap-3 font-medium text-[12px] sm:text-[13px] text-white/60 leading-relaxed shadow-2xl group-hover:-translate-y-2 transition-transform duration-500">
-                <p>Hi <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 drop-shadow-[0_0_10px_rgba(34,211,238,0.2)]">{'{{'}FirstName{'}}'}</span>,</p>
-                <p>I noticed your recent launch of <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-purple-300 bg-purple-500/10 border border-purple-500/20 drop-shadow-[0_0_10px_rgba(192,132,252,0.2)]">{'{{'}Recent_Product{'}}'}</span>. <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-amber-300 bg-amber-500/10 border border-amber-500/20 drop-shadow-[0_0_10px_rgba(252,211,77,0.2)]">{'{{'}Icebreaker_Compliment{'}}'}</span></p>
-                <p>Are you open to a quick chat about scaling your outreach infrastructure?</p>
-              </div>
-            </div>
-
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 pointer-events-none z-10">
-              <div className="w-10 h-10 rounded-[12px] bg-cyan-500/[0.12] border border-cyan-500/20 flex items-center justify-center mb-4 shadow-inner group-hover:bg-cyan-500/[0.18] transition-colors">
-                <Terminal className="w-4 h-4 text-cyan-400" />
-              </div>
-              <h3 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Intelligent Variable Injection</h3>
-              <p className="text-gray-500 leading-[1.6] text-[14px] font-light max-w-sm">Programmatically embed context-aware attributes and AI-synthesized icebreakers to maximize personalization at scale.</p>
-            </div>
+                </div>
+             </BentoCard>
           </div>
 
         </div>
