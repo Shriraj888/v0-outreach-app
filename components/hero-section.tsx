@@ -348,19 +348,19 @@ export function HeroSection() {
         <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:gap-16">
           <div className="relative">
             <div className="space-y-2 sm:space-y-3">
-              <div className="overflow-hidden">
+              <div className="overflow-hidden pb-2 -mb-2 sm:pb-4 sm:-mb-4">
                 <h1 className="hero-heading [text-wrap:balance] text-4xl font-medium tracking-[-0.06em] text-white opacity-0 sm:text-6xl lg:text-[5.25rem] lg:leading-[0.98]">
                   Cold emails with
                 </h1>
               </div>
-              <div className="overflow-hidden">
-                <h1 className="hero-heading [text-wrap:balance] text-4xl font-medium tracking-[-0.06em] opacity-0 sm:text-6xl lg:text-[5.25rem] lg:leading-[0.98]">
+              <div className="overflow-hidden pb-2 -mb-2 sm:pb-4 sm:-mb-4">
+                <h1 className="hero-heading [text-wrap:balance] text-4xl font-medium tracking-[-0.06em] opacity-0 sm:text-6xl lg:text-[5.25rem] lg:leading-[0.98] pb-1">
                   <span className="bg-gradient-to-r from-white via-violet-200 to-white bg-clip-text text-transparent">
                     taste, timing,
                   </span>
                 </h1>
               </div>
-              <div className="overflow-hidden">
+              <div className="overflow-hidden pb-2 -mb-2 sm:pb-4 sm:-mb-4">
                 <h1 className="hero-heading [text-wrap:balance] text-4xl font-medium tracking-[-0.06em] text-white opacity-0 sm:text-6xl lg:text-[5.25rem] lg:leading-[0.98]">
                   and intent.
                 </h1>
