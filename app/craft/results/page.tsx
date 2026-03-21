@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, RefreshCw, AlertCircle, Sparkles } from "lucide-react"
+import { ArrowLeft, RefreshCw, AlertCircle, Sparkles, Square } from "lucide-react"
 import { toast } from "sonner"
 import { EmailCard } from "@/components/email-card"
 import { GeneratingLoader } from "@/components/generating-loader"
@@ -30,8 +30,17 @@ export default function ResultsPage() {
   const [formData, setFormData] = useState<FormData | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<Record<string, boolean>>({})
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const regenerateControllersRef = useRef<Record<string, AbortController>>({})
 
   const generateEmails = async (data: FormData, key: string) => {
+    // Abort any previous generation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     setIsLoading(true)
     setError(null)
 
@@ -55,6 +64,7 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, apiKey: key }),
+        signal: controller.signal,
       })
 
       const responseData = await response.json()
@@ -65,9 +75,18 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
 
       setResults(responseData)
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled — don't show error
+        return
+      }
       setError(err instanceof Error ? err.message : "Something went wrong")
     } finally {
-      setIsLoading(false)
+      if (!controller.signal.aborted) {
+        setIsLoading(false)
+      }
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
     }
   }
 
@@ -88,6 +107,13 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
 
   const handleRegenerate = async (style: "formal" | "casual" | "bold") => {
     if (!formData || !apiKey || regenerating[style]) return
+
+    // Abort any previous regeneration for this style
+    if (regenerateControllersRef.current[style]) {
+      regenerateControllersRef.current[style].abort()
+    }
+    const controller = new AbortController()
+    regenerateControllersRef.current[style] = controller
 
     setRegenerating((prev) => ({ ...prev, [style]: true }))
 
@@ -112,6 +138,7 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, apiKey, singleStyle: true }),
+        signal: controller.signal,
       })
 
       const responseData = await response.json()
@@ -131,16 +158,110 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
         }
       })
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled — don't show error
+        return
+      }
       const message = err instanceof Error ? err.message : "Regeneration failed"
       toast.error(message)
     } finally {
-      setRegenerating((prev) => ({ ...prev, [style]: false }))
+      if (!controller.signal.aborted) {
+        setRegenerating((prev) => ({ ...prev, [style]: false }))
+      }
+      if (regenerateControllersRef.current[style] === controller) {
+        delete regenerateControllersRef.current[style]
+      }
     }
   }
 
   const handleRetry = () => {
     if (formData && apiKey) {
       generateEmails(formData, apiKey)
+    }
+  }
+
+  const handleStopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setIsLoading(false)
+    setError(null)
+  }
+
+  const handleStopRegeneration = (style: "formal" | "casual" | "bold") => {
+    if (regenerateControllersRef.current[style]) {
+      regenerateControllersRef.current[style].abort()
+      delete regenerateControllersRef.current[style]
+    }
+    setRegenerating((prev) => ({ ...prev, [style]: false }))
+  }
+
+  const handleEditSuggestion = async (style: "formal" | "casual" | "bold", suggestion: string) => {
+    if (!results || !apiKey || regenerating[style]) return
+
+    // Abort any previous regeneration for this style
+    if (regenerateControllersRef.current[style]) {
+      regenerateControllersRef.current[style].abort()
+    }
+    const controller = new AbortController()
+    regenerateControllersRef.current[style] = controller
+
+    setRegenerating((prev) => ({ ...prev, [style]: true }))
+
+    const currentEmail = results[style]
+
+    const prompt = `You are an expert cold email copywriter. Here is an existing cold email:
+
+Subject: ${currentEmail.subject}
+
+Body:
+${currentEmail.body}
+
+The user wants the following changes applied to this email:
+"${suggestion}"
+
+Please modify the email according to the user's instructions while maintaining the overall tone and quality. Return ONLY a JSON object in this exact format, no markdown, no extra text:
+{ "subject": "...", "body": "..." }`
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, apiKey, singleStyle: true }),
+        signal: controller.signal,
+      })
+
+      const responseData = await response.json()
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to apply edits")
+      }
+
+      setResults((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          [style]: {
+            subject: responseData.subject,
+            body: responseData.body,
+          },
+        }
+      })
+      toast.success("Edits applied!")
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return
+      }
+      const message = err instanceof Error ? err.message : "Failed to apply edits"
+      toast.error(message)
+    } finally {
+      if (!controller.signal.aborted) {
+        setRegenerating((prev) => ({ ...prev, [style]: false }))
+      }
+      if (regenerateControllersRef.current[style] === controller) {
+        delete regenerateControllersRef.current[style]
+      }
     }
   }
 
@@ -176,8 +297,16 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-32">
+          <div className="flex flex-col items-center justify-center py-32 gap-8">
             <GeneratingLoader size="default" />
+            <button
+              id="stop-generation-btn"
+              onClick={handleStopGeneration}
+              className="group inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 border border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all duration-300 text-sm font-medium backdrop-blur-sm"
+            >
+              <Square className="w-3.5 h-3.5 fill-current animate-pulse group-hover:animate-none" />
+              Stop Generation
+            </button>
           </div>
         ) : error ? (
           <div className="text-center py-20">
@@ -205,6 +334,8 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
                 body={results.formal.body}
                 isRegenerating={regenerating.formal}
                 onRegenerate={() => handleRegenerate("formal")}
+                onStopRegenerate={() => handleStopRegeneration("formal")}
+                onEditSuggestion={(suggestion) => handleEditSuggestion("formal", suggestion)}
               />
               <EmailCard
                 style="casual"
@@ -214,6 +345,8 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
                 body={results.casual.body}
                 isRegenerating={regenerating.casual}
                 onRegenerate={() => handleRegenerate("casual")}
+                onStopRegenerate={() => handleStopRegeneration("casual")}
+                onEditSuggestion={(suggestion) => handleEditSuggestion("casual", suggestion)}
               />
               <EmailCard
                 style="bold"
@@ -223,6 +356,8 @@ Return ONLY a JSON object in this exact format, no markdown, no extra text:
                 body={results.bold.body}
                 isRegenerating={regenerating.bold}
                 onRegenerate={() => handleRegenerate("bold")}
+                onStopRegenerate={() => handleStopRegeneration("bold")}
+                onEditSuggestion={(suggestion) => handleEditSuggestion("bold", suggestion)}
               />
             </div>
 

@@ -29,7 +29,6 @@ function extractJSON(text: string) {
   }
 
   // Try to find JSON object in text anywhere
-  // Look for the first "{" and the last "}"
   const firstOpen = text.indexOf('{')
   const lastClose = text.lastIndexOf('}')
   if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
@@ -44,18 +43,46 @@ function extractJSON(text: string) {
   return null
 }
 
-const MAX_RETRIES = 3
+// OpenRouter models — paid first (no rate limit), free as fallbacks
+const OPENROUTER_MODELS = [
+  "google/gemma-3-27b-it",
+  "google/gemma-3-27b-it:free",
+  "google/gemma-3-12b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+]
+
+function isRetryableError(errMsg: string, statusCode?: number): boolean {
+  return (
+    statusCode === 429 ||
+    statusCode === 503 ||
+    statusCode === 502 ||
+    errMsg.includes("RESOURCE_EXHAUSTED") ||
+    errMsg.includes("quota") ||
+    errMsg.includes("rate") ||
+    errMsg.includes("Too Many Requests") ||
+    errMsg.includes("overloaded") ||
+    errMsg.includes("capacity") ||
+    errMsg.includes("503") ||
+    errMsg.includes("SAFETY") ||
+    errMsg.toLowerCase().includes("safety")
+  )
+}
+
+function isModelUnavailable(errMsg: string, statusCode?: number): boolean {
+  return (
+    statusCode === 404 ||
+    errMsg.includes("No endpoints found") ||
+    errMsg.includes("not found") ||
+    errMsg.includes("does not exist") ||
+    errMsg.includes("model_not_found")
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { prompt, apiKey: rawApiKey, singleStyle } = body
     const apiKey = rawApiKey ? rawApiKey.trim() : ""
-
-    console.log("API Route called")
-    console.log("Has API Key:", !!apiKey)
-    console.log("Key starts with:", apiKey?.substring(0, 6))
-    console.log("Mode:", singleStyle ? "Single" : "Full")
 
     if (!apiKey) {
       return NextResponse.json(
@@ -64,151 +91,146 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let currentModelId = "google/gemma-3-27b-it:free"
-    let model;
-    let openrouterFactory: any = null;
+    const isOpenRouter = apiKey.startsWith("sk-or-")
+    const fullPromptSuffix = singleStyle
+      ? `\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Just the raw JSON object with keys: subject, body.`
+      : `\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Just the raw JSON object with keys: formal, casual, bold, tips.`
 
-    // Check if the API key is an OpenRouter key (starts with sk-or-)
-    if (apiKey.startsWith("sk-or-")) {
-      const { createOpenRouter } = await import("@openrouter/ai-sdk-provider")
-      openrouterFactory = createOpenRouter({ 
-        apiKey,
-        headers: {
-          "HTTP-Referer": "https://cold-mail-crafter.vercel.app",
-          "X-Title": "Cold Mail Crafter"
-        }
-      })
-      // Start with user preferred model
-      model = openrouterFactory(currentModelId)
-    } else {
-      // Google Gemini direct
+    // --- Gemini direct path (fast, single model) ---
+    if (!isOpenRouter) {
       const google = createGoogleGenerativeAI({ apiKey })
-      currentModelId = "gemini-2.5-flash"
-      model = google(currentModelId)
+      const model = google("gemini-2.5-flash")
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const result = await generateText({ model, prompt: prompt + fullPromptSuffix })
+          const parsed = extractJSON(result.text)
+
+          if (singleStyle) {
+            if (parsed?.subject && parsed?.body) return NextResponse.json(parsed)
+          } else {
+            if (parsed?.formal?.subject && parsed?.casual?.subject && parsed?.bold?.subject) {
+              if (!Array.isArray(parsed.tips)) parsed.tips = ["Keep it short and concise", "Follow up within 3-5 days"]
+              return NextResponse.json(parsed)
+            }
+          }
+
+          if (attempt < 2) { await delay(1000); continue }
+          return NextResponse.json(
+            { error: "AI returned an unparseable response. Please try again." },
+            { status: 500 }
+          )
+        } catch (err: any) {
+          const statusCode = err?.statusCode ?? err?.status
+          if (statusCode === 429 || statusCode === 503) {
+            if (attempt < 2) { await delay(2000); continue }
+          }
+          const msg = err?.message ?? "Unknown error"
+          if (statusCode === 401 || statusCode === 403) {
+            return NextResponse.json({ error: "Invalid Gemini API key. Please check your key." }, { status: 401 })
+          }
+          return NextResponse.json({ error: `Generation failed: ${msg.substring(0, 200)}` }, { status: statusCode ?? 500 })
+        }
+      }
     }
 
-    // Retry loop for rate limits
-    let lastError: unknown = null
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        console.log(`Generation attempt ${attempt} with model ${currentModelId}...`)
-        
-        const result = await generateText({
-          model,
-          prompt: singleStyle
-            ? prompt + `\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Just the raw JSON object with keys: subject, body.`
-            : prompt + `\n\nIMPORTANT: Return ONLY a valid JSON object. No markdown, no code fences, no explanation. Just the raw JSON object with keys: formal, casual, bold, tips.`,
-        })
+    // --- OpenRouter path: try each model in sequence, no long waits ---
+    const { createOpenRouter } = await import("@openrouter/ai-sdk-provider")
+    const openrouter = createOpenRouter({
+      apiKey,
+      headers: {
+        "HTTP-Referer": "https://cold-mail-crafter.vercel.app",
+        "X-Title": "Cold Mail Crafter"
+      }
+    })
 
+    let lastError: any = null
+
+    for (const modelId of OPENROUTER_MODELS) {
+      const model = openrouter(modelId)
+      console.log(`Trying model: ${modelId}`)
+
+      try {
+        const result = await generateText({ model, prompt: prompt + fullPromptSuffix })
         const text = result.text
 
         if (!text || text.trim() === "") {
-          console.log("Empty response received from AI model")
-          lastError = new Error("The AI model returned an empty response. This can happen with certain free OpenRouter models. Please try again.")
-          // Wait a bit and retry
-          await delay(2000)
+          console.log(`Empty response from ${modelId}, trying next model...`)
+          lastError = new Error("Empty response from model")
           continue
         }
 
         const parsed = extractJSON(text)
 
-        // Single style regeneration
         if (singleStyle) {
-          if (parsed && parsed.subject && parsed.body) {
+          if (parsed?.subject && parsed?.body) {
+            console.log(`✓ Success with ${modelId}`)
             return NextResponse.json(parsed)
           }
-          console.log("Single style response:", text)
-          lastError = new Error("AI response was not valid JSON for single style. Raw: " + text.substring(0, 200))
+          console.log(`Invalid JSON from ${modelId} for single style, trying next...`)
+          lastError = new Error("Invalid JSON response")
           continue
         }
 
-        // Full generation (all 3 styles)
-
-        if (
-          parsed &&
-          parsed.formal &&
-          parsed.casual &&
-          parsed.bold &&
-          parsed.formal.subject &&
-          parsed.formal.body &&
-          parsed.casual.subject &&
-          parsed.casual.body &&
-          parsed.bold.subject &&
-          parsed.bold.body
-        ) {
-          // Ensure tips is an array
+        // Full generation
+        if (parsed?.formal?.subject && parsed?.formal?.body &&
+            parsed?.casual?.subject && parsed?.casual?.body &&
+            parsed?.bold?.subject && parsed?.bold?.body) {
           if (!Array.isArray(parsed.tips)) {
             parsed.tips = ["Keep the email short and concise", "Follow up within 3-5 days"]
           }
+          console.log(`✓ Success with ${modelId}`)
           return NextResponse.json(parsed)
         }
 
-        // If we got text but couldn't parse it properly, fail with context
-        console.log("Full generation response:", text)
-        console.log("Parsed object:", JSON.stringify(parsed, null, 2))
-        lastError = new Error("AI response was not valid JSON. Raw: " + text.substring(0, 200))
+        console.log(`Incomplete JSON from ${modelId}, trying next...`)
+        lastError = new Error("Incomplete JSON from model")
         continue
-      } catch (err) {
+
+      } catch (err: any) {
         lastError = err
-        const errMsg = err instanceof Error ? err.message : ""
-        const statusCode = (err as { statusCode?: number })?.statusCode
+        const errMsg = err?.message ?? ""
+        const statusCode = err?.statusCode ?? err?.status
 
-        console.error(`Attempt ${attempt} error:`, errMsg, "Status:", statusCode)
+        console.error(`✗ ${modelId} failed:`, errMsg.substring(0, 100), "Status:", statusCode)
 
-        // If rate limited or quota exceeded, wait and retry
-        if (
-          statusCode === 429 ||
-          statusCode === 503 ||
-          errMsg.includes("RESOURCE_EXHAUSTED") ||
-          errMsg.includes("quota") ||
-          errMsg.includes("rate") ||
-          errMsg.includes("503") ||
-          errMsg.includes("overloaded") ||
-          errMsg.includes("SAFETY") ||
-          errMsg.toLowerCase().includes("safety")
-        ) {
-          const waitTime = attempt * 5000 // 5s, 10s, 15s
-          console.log(`Rate limited or temporary error. Retrying in ${waitTime / 1000}s (attempt ${attempt}/${MAX_RETRIES})...`)
-          await delay(waitTime)
+        // Auth/payment errors on paid model — fall through to free models
+        // Only hard-fail if a FREE model returns 401 (means key is truly invalid)
+        if (statusCode === 401 || statusCode === 402 || statusCode === 403) {
+          if (modelId.includes(":free")) {
+            // Free model rejected the key — key is genuinely invalid
+            return NextResponse.json(
+              { error: "Invalid or unauthorized OpenRouter API key. Please check your key." },
+              { status: 401 }
+            )
+          }
+          // Paid model returned 401/402 — likely no credits, try free models
+          console.log(`→ Paid model needs credits, trying free models...`)
           continue
         }
 
-        // Non-retryable errors, break immediately
-        break
+        // Rate limited or model unavailable — immediately try next model
+        if (isRetryableError(errMsg, statusCode) || isModelUnavailable(errMsg, statusCode)) {
+          console.log(`→ Switching to next model...`)
+          continue
+        }
+
+        // Unknown error — try next model anyway
+        console.log(`→ Unknown error, trying next model...`)
+        continue
       }
     }
 
-    // If we got here, all retries failed
-    console.error("API route error after retries:", lastError)
+    // All models exhausted
+    console.error("All OpenRouter models failed. Last error:", lastError?.message)
 
-    const errorMessage = lastError instanceof Error ? lastError.message : "Unknown error"
-    const statusCode = (lastError as { statusCode?: number })?.statusCode ?? 500
+    const errorMessage = lastError?.message ?? "Unknown error"
+    const statusCode = lastError?.statusCode ?? lastError?.status ?? 500
 
-    if (
-      errorMessage.includes("Key limit exceeded") ||
-      errorMessage.includes("RESOURCE_EXHAUSTED") ||
-      errorMessage.includes("quota") ||
-      errorMessage.includes("Rate limit exceeded") ||
-      errorMessage.includes("rate limit") ||
-      statusCode === 429
-    ) {
+    if (statusCode === 429 || errorMessage.includes("Too Many Requests") || errorMessage.includes("rate") || errorMessage.includes("quota")) {
       return NextResponse.json(
-        { error: "API quota exceeded. Please wait a minute and try again, or use a different API key." },
+        { error: "All free models are rate-limited right now. Please wait 30 seconds and try again." },
         { status: 429 }
-      )
-    }
-
-    if (statusCode === 401 || statusCode === 403 || errorMessage.includes("API key")) {
-      return NextResponse.json(
-        { error: "Invalid or unauthorized API key. Please check your key." },
-        { status: 401 }
-      )
-    }
-
-    if (errorMessage.includes("No endpoints found") || errorMessage.includes("not found")) {
-      return NextResponse.json(
-        { error: "Model not available. Please try a different API key or try again later." },
-        { status: 404 }
       )
     }
 
@@ -216,7 +238,7 @@ export async function POST(request: NextRequest) {
       { error: `Generation failed: ${errorMessage.substring(0, 200)}` },
       { status: 500 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("API route unexpected error:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred. Please try again." },

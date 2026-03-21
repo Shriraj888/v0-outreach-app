@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Copy, Check, RefreshCw, Briefcase, Coffee, Zap, Mail, Send, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { Copy, Check, RefreshCw, Briefcase, Coffee, Zap, Mail, Send, ChevronDown, ChevronUp, Loader2, Square, Pencil, ArrowUp } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { GeneratingLoader } from "@/components/generating-loader"
@@ -17,6 +17,8 @@ interface EmailCardProps {
   body: string
   isRegenerating?: boolean
   onRegenerate: () => void
+  onStopRegenerate?: () => void
+  onEditSuggestion?: (suggestion: string) => void
 }
 
 const cardConfig = {
@@ -59,16 +61,22 @@ export function EmailCard({
   body,
   isRegenerating = false,
   onRegenerate,
+  onStopRegenerate,
+  onEditSuggestion,
 }: EmailCardProps) {
   const [copied, setCopied] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [mailMenuOpen, setMailMenuOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [editText, setEditText] = useState("")
   
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   
   const envelopeRef = useRef<HTMLDivElement>(null)
   const mailMenuRef = useRef<HTMLDivElement>(null)
+  const editMenuRef = useRef<HTMLDivElement>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
   const config = cardConfig[style]
   const Icon = config.icon
 
@@ -89,7 +97,7 @@ export function EmailCard({
     )
   }, { scope: envelopeRef, dependencies: [subject, body, isRegenerating] })
 
-  // Handle external clicks
+  // Handle external clicks for mail menu
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (mailMenuRef.current && !mailMenuRef.current.contains(e.target as Node)) {
@@ -99,6 +107,24 @@ export function EmailCard({
     if (mailMenuOpen) document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [mailMenuOpen])
+
+  // Handle external clicks for edit popover
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (editMenuRef.current && !editMenuRef.current.contains(e.target as Node)) {
+        setEditOpen(false)
+      }
+    }
+    if (editOpen) document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [editOpen])
+
+  // Auto-focus input when edit opens
+  useEffect(() => {
+    if (editOpen && editInputRef.current) {
+      editInputRef.current.focus()
+    }
+  }, [editOpen])
 
   const handleCopy = async () => {
     const fullEmail = `Subject: ${subject}\n\n${body}`
@@ -128,6 +154,24 @@ export function EmailCard({
     const { left, top } = currentTarget.getBoundingClientRect()
     mouseX.set(clientX - left)
     mouseY.set(clientY - top)
+  }
+
+  const handleEditSubmit = () => {
+    const trimmed = editText.trim()
+    if (!trimmed || !onEditSuggestion) return
+    onEditSuggestion(trimmed)
+    setEditText("")
+    setEditOpen(false)
+  }
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleEditSubmit()
+    }
+    if (e.key === "Escape") {
+      setEditOpen(false)
+    }
   }
 
   return (
@@ -161,8 +205,17 @@ export function EmailCard({
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
       {isRegenerating && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-md rounded-[28px]">
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5 bg-black/80 backdrop-blur-md rounded-[28px]">
           <GeneratingLoader size="compact" />
+          {onStopRegenerate && (
+            <button
+              onClick={onStopRegenerate}
+              className="group/stop inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.06] text-gray-400 border border-white/[0.08] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all duration-300 text-xs font-medium backdrop-blur-sm"
+            >
+              <Square className="w-3 h-3 fill-current animate-pulse group-hover/stop:animate-none" />
+              Stop
+            </button>
+          )}
         </div>
       )}
 
@@ -183,16 +236,76 @@ export function EmailCard({
               </div>
             </div>
             
-            <button
-              onClick={onRegenerate}
-              disabled={isRegenerating}
-              className="p-3 bg-white/[0.02] border border-white/[0.05] rounded-full text-white/40 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.1] transition-all duration-300 hover:rotate-180 group/btn"
-              title="Draft another version"
-            >
-              {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            </button>
+            <div className="flex items-center gap-2">
+              {onEditSuggestion && (
+                <button
+                  onClick={() => setEditOpen(!editOpen)}
+                  disabled={isRegenerating}
+                  className={cn(
+                    "p-3 bg-white/[0.02] border border-white/[0.05] rounded-full text-white/40 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.1] transition-all duration-300 group/edit",
+                    editOpen && "text-white bg-white/[0.08] border-white/[0.1]"
+                  )}
+                  title="Suggest edits"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={onRegenerate}
+                disabled={isRegenerating}
+                className="p-3 bg-white/[0.02] border border-white/[0.05] rounded-full text-white/40 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.1] transition-all duration-300 hover:rotate-180 group/btn"
+                title="Draft another version"
+              >
+                {isRegenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
         </div>
+
+          {/* Edit Suggestion Popover */}
+          <AnimatePresence>
+            {editOpen && (
+              <motion.div
+                ref={editMenuRef}
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="relative z-50 mb-4"
+              >
+                <div className="rounded-2xl border border-white/[0.08] bg-[#111]/95 backdrop-blur-2xl shadow-2xl shadow-black/40 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Pencil className="w-3 h-3 text-white/30" />
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-white/30">Suggest Edits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={handleEditKeyDown}
+                      placeholder="e.g. Make it shorter, add a call to action..."
+                      className="flex-1 bg-white/[0.04] border border-white/[0.06] rounded-xl px-3 py-2.5 text-[13px] text-white placeholder:text-white/20 outline-none focus:border-white/[0.15] focus:bg-white/[0.06] transition-all duration-300"
+                    />
+                    <button
+                      onClick={handleEditSubmit}
+                      disabled={!editText.trim()}
+                      className={cn(
+                        "p-2.5 rounded-xl border transition-all duration-300",
+                        editText.trim()
+                          ? "bg-white/[0.1] border-white/[0.15] text-white hover:bg-white/[0.15]"
+                          : "bg-white/[0.02] border-white/[0.05] text-white/20 cursor-not-allowed"
+                      )}
+                      title="Apply edits"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         {/* Subject */}
         <div ref={subjectRef} className={cn("p-4 rounded-[20px] border mb-6 backdrop-blur-sm transition-transform duration-500 group-hover:scale-[1.01] shadow-2xl shadow-black/50", config.subjectBg)}>
